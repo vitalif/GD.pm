@@ -46,7 +46,7 @@ if (defined $arg && $arg eq '--write') {
   compare(&test7,7,'write');
   compare(&test8,8,'write');
   compare(&test9('frog.xpm'),9,'write')   if GD::Image->can('newFromXpm');
-  compare(&test10('frog.jpg'),10,'write') if GD::Image->can('newFromJpeg');
+  compare(image(GD::Image->newFromJpeg('frog.jpg', 1)),10,'write') if GD::Image->can('newFromJpeg');
 }
 
 compare(test2(),2);
@@ -75,10 +75,10 @@ if (GD::Image->newFromXpm('frog.xpm')) {
   print "not ok ",9,"\n";
 }
 
-if (GD::Image->can('newFromJpeg')) {
-  compare(test10('frog.jpg'),10);
+if (GD::Image->can('newFromJpeg') && GD::Image->can('newFromPng')) {
+  test10();
 } else {
-  print "ok ",10," # Skip, no JPEG support\n";
+  print "ok ",10," # Skip, no JPEG or PNG support (need both)\n";
 }
 
 my $image  = GD::Image->new(300,300);
@@ -306,17 +306,31 @@ sub test9 {
   return image($im)
 }
 
-sub test10 {
-  my $fn = shift;
-  my $im = GD::Image->newFromJpeg($fn);
-  return image($im)
-}
-
-# not used
-sub test11 {
-  my $fn = shift;
-  my $im = GD::Image->newFromGif($fn);
-  $im->gif;
+sub test10
+{
+  my $img1 = GD::Image->newFromJpeg('frog.jpg', 1);
+  my $img2 = GD::Image->newFromPng('frog.png', 1);
+  my ($w, $h) = $img1->getBounds;
+  my ($w2, $h2) = $img2->getBounds;
+  if ($w == $w2 && $h == $h2)
+  {
+    for (my $i = 0; $i < $h; $i++)
+    {
+      for (my $j = 0; $j < $w; $j++)
+      {
+        if ($img1->getPixel($j, $i) != $img2->getPixel($j, $i))
+        {
+          print "not ok 10 # pixel data doesn't match at ($j, $i): ".sprintf("jpg=#%06x, png=#%06x", $img1->getPixel($j, $i), $img2->getPixel($j, $i))."\n";
+          return;
+        }
+      }
+    }
+    print "ok 10\n";
+  }
+  else
+  {
+    print "not ok 10 # size doesn't match: ${w}x$h vs ${w2}x$h2\n";
+  }
 }
 
 sub image {
